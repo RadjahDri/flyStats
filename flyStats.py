@@ -16,6 +16,7 @@ class Fly:
 		self.maxG = None
 		self.begin = None
 		self.end = None
+		self.id = None
 
 	def __lt__(self, other):
 		return self.date < other.date or (self.date == other.date and self.begin < other.begin)
@@ -72,7 +73,10 @@ if __name__ == "__main__":
 	higher = 0
 	flies = []
 
-	for kmlFileName in kmlFilesNames:
+	cmptDate = 0
+	currDate = None
+
+	for kmlFileName in sorted(kmlFilesNames):
 		fly = Fly()
 		kml = kmlParser.parse(kmlFileName)
 		for placemark in kml.getroot().Document.Placemark:
@@ -100,7 +104,14 @@ if __name__ == "__main__":
 				minDay = captureDate
 			if(captureDate > maxDay):
 				maxDay = captureDate
-	
+		
+		if(currDate == fly.date):
+			cmptDate += 1
+		else: 
+			currDate = fly.date
+			cmptDate = 1
+		fly.id = str(cmptDate)
+
 		# Duration
 		if(placemarkDuration is not None):
 			matchDuration = regexDuration.finditer(str(placemarkDuration.name)).next()
@@ -109,8 +120,10 @@ if __name__ == "__main__":
 			totalDuration += duration
 			if(duration < minDuration):
 				minDuration = duration
+				flyMinDuration = fly
 			if(duration > maxDuration):
 				maxDuration = duration
+				flyMaxDuration = fly
 
 		# Begin
 		if(placemarkTakeoff is not None):
@@ -118,6 +131,7 @@ if __name__ == "__main__":
 			fly.begin = 3600 * int(tmpTakeoff[1]) + 60 * int(tmpTakeoff[2])
 			if(fly.begin < earlier):
 				earlier = fly.begin
+				flyEarlier = fly
 
 		# End
 		if(placemarkLanding is not None):
@@ -125,6 +139,7 @@ if __name__ == "__main__":
 			fly.end = 3600 * int(tmpLanding[1]) + 60 * int(tmpLanding[2])
 			if(fly.end > latest):
 				latest = fly.end
+				flyLatest = fly
 
 		# Max speed
 		if(placemarkMaxSpeed is not None):
@@ -132,6 +147,7 @@ if __name__ == "__main__":
 			fly.maxSpeed = float(matchMaxSpeed.group(1))
 			if(fly.maxSpeed > maxSpeed):
 				maxSpeed = fly.maxSpeed
+				flyMaxSpeed = fly
 
 		# Max G
 		if(placemarkMaxG is not None):
@@ -139,6 +155,7 @@ if __name__ == "__main__":
 			fly.maxG = float(matchMaxG.group(1))
 			if(fly.maxG > maxG):
 				maxG = fly.maxG
+				flyMaxG = fly
 
 		# Max Altitude
 		if(placemarkMaxAltitude is not None):
@@ -151,6 +168,7 @@ if __name__ == "__main__":
 			fly.maxAltitude = max(altitudes)
 			if(fly.maxAltitude > higher):
 				higher = fly.maxAltitude
+				flyHigher = fly
 
 		# Takeoff Altitude
 		if(placemarkTrace is not None):
@@ -175,18 +193,25 @@ if __name__ == "__main__":
 	print "Du "+minDay.strftime("%d/%m/%y")+" au "+maxDay.strftime("%d/%m/%y")
 	print str(numberOfFlies)+' vols'
 	print 'Temps de vol total: '+formatTime(totalDuration)
-	print 'Temps de vol minimum: '+formatTime(minDuration)
-	print 'Temps de vol maximum: '+formatTime(maxDuration)
+	print 'Temps de vol minimum: '+formatTime(minDuration)+' \t('+flyMinDuration.date.strftime("%d/%m/%y")+' ('+flyMinDuration.id+'))'
+	print 'Temps de vol maximum: '+formatTime(maxDuration)+' \t('+flyMaxDuration.date.strftime("%d/%m/%y")+' ('+flyMaxDuration.id+'))'
 	print 'Temps de vol moyen: '+formatTime(averageDuration)
-	print 'Le vol le plus tot: '+formatTime(earlier)
-	print 'Le vol le plus tard: '+formatTime(latest)
-	print 'La plus haute vitesse: '+str(maxSpeed)+'km/h'
-	print 'La plus haute force G: '+str(maxG)+'g'
-	print 'La plus haute altitude: '+str(higher)+'m'
+	print 'Le vol le plus tot: '+formatTime(earlier)+' \t('+flyEarlier.date.strftime("%d/%m/%y")+' ('+flyEarlier.id+'))'
+	print 'Le vol le plus tard: '+formatTime(latest)+' \t('+flyLatest.date.strftime("%d/%m/%y")+' ('+flyLatest.id+'))'
+	print 'La plus haute vitesse: '+str(maxSpeed)+'km/h'+' \t('+flyMaxSpeed.date.strftime("%d/%m/%y")+' ('+flyMaxSpeed.id+'))'
+	print 'La plus haute force G: '+str(maxG)+'g'+' \t('+flyMaxG.date.strftime("%d/%m/%y")+' ('+flyMaxG.id+'))'
+	print 'La plus haute altitude: '+str(higher)+'m'+' \t('+flyHigher.date.strftime("%d/%m/%y")+' ('+flyHigher.id+'))'
 
-	print '|--------|---------|---------|---------|---------|-----|-----|-----|-----|'
-	print '|  Date  |  Duree  |Decollage| Arrivee |  Vit M  |Max G|Alt M|Alt D|Alt A|'
-	print '|--------|---------|---------|---------|---------|-----|-----|-----|-----|'
+	print '|------------|---------|---------|---------|---------|-----|-----|-----|-----|'
+	print '| Date (ID)  |  Duree  |Decollage|Atterissa|  Vit M  |Max G|Alt M|Alt D|Alt A|'
+	print '|------------|---------|---------|---------|---------|-----|-----|-----|-----|'
+	cmptDate = 0
+	currDate = None
 	for fly in flies:
-		print '|'+fly.date.strftime("%d/%m/%y")+'|'+formatTime(fly.duration)+'|'+formatTime(fly.begin)+'|'+formatTime(fly.end)+'|'+"%05.2fkm/h" % fly.maxSpeed+'|'+ "%.2fg" % fly.maxG+'|'+ ' '*(4-len(str(fly.maxAltitude)))+str(fly.maxAltitude)+'m|'+ ' '*(4-len(str(fly.takeoffAltitude)))+str(fly.takeoffAltitude)+'m|'+' '*(4-len(str(fly.landingAltitude))) + str(fly.landingAltitude)+'m|'
-	print '|--------|---------|---------|---------|---------|-----|-----|-----|-----|'
+		if(currDate == fly.date):
+			cmptDate += 1
+		else: 
+			currDate = fly.date
+			cmptDate = 1
+		print '|'+fly.date.strftime("%d/%m/%y")+' ('+str(cmptDate)+')|'+formatTime(fly.duration)+'|'+formatTime(fly.begin)+'|'+formatTime(fly.end)+'|'+"%05.2fkm/h" % fly.maxSpeed+'|'+ "%.2fg" % fly.maxG+'|'+ ' '*(4-len(str(fly.maxAltitude)))+str(fly.maxAltitude)+'m|'+ ' '*(4-len(str(fly.takeoffAltitude)))+str(fly.takeoffAltitude)+'m|'+' '*(4-len(str(fly.landingAltitude))) + str(fly.landingAltitude)+'m|'
+	print '|------------|---------|---------|---------|---------|-----|-----|-----|-----|'
