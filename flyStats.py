@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import parser as kmlParser
 import argparse
 import os
@@ -52,6 +53,9 @@ if __name__ == "__main__":
 	else:
 		kmlFilesNames = listKml(directoryPath)
 	numberOfFlies = len(kmlFilesNames)
+	if(numberOfFlies == 0):
+		print "No track file found"
+		exit(0)
 
 	regexDate = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}')
 	regexDuration = re.compile('Duration: ([0-9]{2})h([0-9]{2})m([0-9]{2})s')
